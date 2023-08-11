@@ -11,52 +11,30 @@ class CustomerSuccessBalancing
   # Returns the ID of the customer success with most customers
   def execute
     cs_index = 0
-    most_efficient_cs_id = nil
-    second_most_efficient_cs_id = nil
     remove_low_level_cs
     return 0 if avaliable_CS.empty?
+
     ordered_clients.map do |client|
       if client[:score] <= avaliable_CS[cs_index][:score]
-        # p 'entrou'
         update_count_cs(cs_index)
-        # p "Valor agregado #{avaliable_CS}"
       else
-        # p 'else'
         cs_index += 1
-        # p "Tamanho de cs_index: #{cs_index}"
-        # p "avaliable_CS TAMANNHO DO ARRAY #{avaliable_CS.size}"
-        # p "avaliable_CS TAMANNHO Da FUNCAO #{cs_size_array}"
         break if cs_index >= cs_size_array
+
         update_count_cs(cs_index)
-        # p "Valor agregado #{avaliable_CS}"
       end
-
     end
-    # p "======="
-    # p @avaliable_CS
     @avaliable_CS.sort! {|first_customer, second_customer| first_customer[:score] <=> second_customer[:score] }
-
-    # if cs_index < cs_size_array
-    #   most_efficient_cs_id, second_most_efficient_cs_id = check_most_efficient_cs(most_efficient_cs_id, cs_index)
-    # end
 
     check_draw(@avaliable_CS[0], @avaliable_CS[1])
   end
 
   def remove_low_level_cs
-    # p avaliable_CS
-    # p ordered_clients
     avaliable_CS.reject! { |cs| cs[:score] < ordered_clients[0][:score] }
-    # p avaliable_CS
   end
 
-
   def update_count_cs(index)
-    # p 'index'
-    # p index
-    # p 'index'
     create_keys(index) unless avaliable_CS[index][:count_client]
-
     avaliable_CS[index][:count_client] += 1
   end
 
@@ -65,28 +43,15 @@ class CustomerSuccessBalancing
   end
 
   def check_draw(first_cs, second_cs)
-    # p avaliable_CS
     return first_cs[:id] if second_cs.nil? && first_cs.any?
     return 0 if first_cs[:count_client].eql?(second_cs[:count_client])
 
     first_cs[:id]
   end
 
-
   def create_keys(index)
     avaliable_CS[index][:count_client] = 0
   end
-
-  def check_most_efficient_cs(most_efficient, candidate)
-    return [candidate, nil] if most_efficient.nil?
-
-    if avaliable_CS[most_efficient][:count_client] >= avaliable_CS[candidate][:count_client]
-      [most_efficient, candidate]
-    else
-      [candidate, most_efficient]
-    end
-  end
-
 
   def ordered_clients
     @ordered_clients ||= begin
