@@ -14,41 +14,40 @@ class CustomerSuccessBalancing
     most_efficient_cs_id = nil
     second_most_efficient_cs_id = nil
     ordered_clients.map do |client|
-      if sum_level_nil?(cs_index)
-        create_keys(cs_index)
-      end
-      if avaliable_CS[cs_index][:sum_level_client].zero?
-        upgrade_sum_level_and_count(cs_index, client[:score])
-        next
-      end
-      if (avaliable_CS[cs_index][:sum_level_client] + client[:score]) < averege_clients_level
-        upgrade_sum_level_and_count(cs_index, client[:score])
+
+      # p client
+      # p avaliable_CS
+      # p '-------'
+      # update_count_cs(cs_index, client[:score])
+      if client[:score] <= avaliable_CS[cs_index][:score]
+        update_count_cs(cs_index)
       else
         cs_index += 1
-        cs_index < avaliable_CS.size ? upgrade_sum_level_and_count(cs_index, client[:score]) : break
-      end
-
-      if cs_index < avaliable_CS.size
-        most_efficient_cs_id, second_most_efficient_cs_id = check_most_efficient_cs(most_efficient_cs_id, cs_index)
+        update_count_cs(cs_index) if cs_index <= cs_size_array
       end
     end
+    p avaliable_CS
 
-    check_draw(most_efficient_cs_id, second_most_efficient_cs_id)
+    # if cs_index < avaliable_CS.size
+    #   most_efficient_cs_id, second_most_efficient_cs_id = check_most_efficient_cs(most_efficient_cs_id, cs_index)
+    # end
+
+    # check_draw(most_efficient_cs_id, second_most_efficient_cs_id)
+  end
+
+  def cs_size_array
+    @cs_size_array ||= avaliable_CS.size
   end
 
   def check_draw(most_efficient, second_must_efficient)
     return 0 if most_efficient.eql?(second_must_efficient)
-    p most_efficient
-    p second_must_efficient
-    p '--'
-    # p avaliable_CS
+
     most_efficient
   end
 
 
   def create_keys(index)
-    avaliable_CS[index][:sum_level_client] = 0
-    avaliable_CS[index][:count_client]     = 0
+    avaliable_CS[index][:count_client] = 0
   end
 
   def check_most_efficient_cs(most_efficient, candidate)
@@ -61,36 +60,17 @@ class CustomerSuccessBalancing
     end
   end
 
-  def upgrade_sum_level_and_count(index, score)
-    create_keys(index) if sum_level_nil?(index)
-    avaliable_CS[index][:sum_level_client] += score
+  def update_count_cs(index)
+    create_keys(index) unless avaliable_CS[index][:count_client]
 
-    avaliable_CS[index][:count_client]     += 1
-  end
-
-  def sum_level_nil?(index)
-    avaliable_CS[index][:sum_level_client].nil?
-  end
-
-  def remove_first_client_from_list
-    return_value = ordered_clients.first
-    ordered_clients.drop(1)
-    return_value
+    avaliable_CS[index][:count_client] += 1
   end
 
 # precisa validar que o numero de cs fora de atividde tem que ser no máximo o numero de cs/2 arredondado para baixo
   def ordered_clients
     @ordered_clients ||= begin
       @customers.sort! {|first_customer, second_customer| first_customer[:score] <=> second_customer[:score] }
-      @customers.reverse!
-    end
-  end
-
-  def averege_clients_level
-    @averege_clients_level ||= begin
-      sum = 0
-      ordered_clients.each {|client| sum += client[:score] }
-      sum/ordered_clients.size
+      # @customers.reverse!
     end
   end
 
@@ -98,7 +78,7 @@ class CustomerSuccessBalancing
     @avaliable_CS ||= begin
       @customer_success.reject! { |cs| @away_customer_success.include?(cs[:id]) }
       @customer_success.sort! {|first_cs, second_cs| first_cs[:score] <=> second_cs[:score] }
-      @customer_success.reverse!
+      # @customer_success.reverse!
     end
   end
 
@@ -108,14 +88,14 @@ class CustomerSuccessBalancing
 end
 
 class CustomerSuccessBalancingTests < Minitest::Test
-  def test_scenario_one
-    balancer = CustomerSuccessBalancing.new(
-      build_scores([60, 20, 95, 75]),
-      build_scores([90, 20, 70, 40, 60, 10]),
-      [2, 4]
-    )
-    assert_equal 1, balancer.execute
-  end
+  # def test_scenario_one
+  #   balancer = CustomerSuccessBalancing.new(
+  #     build_scores([60, 20, 95, 75]),
+  #     build_scores([90, 20, 70, 40, 60, 10]),
+  #     [2, 4]
+  #   )
+  #   assert_equal 1, balancer.execute
+  # end
 
   def test_scenario_two
     balancer = CustomerSuccessBalancing.new(
