@@ -10,59 +10,60 @@ class CustomerSuccessBalancing
 
   # Returns the ID of the customer success with most customers
   def execute
-    cs_index = 0
+    customer_success_index = 0
     remove_low_level_cs
-    return 0 if avaliable_CS.empty?
+    return 0 if avaliable_customer_success.empty?
 
     ordered_clients.map do |client|
-      if client[:score] <= avaliable_CS[cs_index][:score]
-        update_count_cs(cs_index)
-      else
-        cs_index += 1
-        break if cs_index >= cs_size_array
-
-        update_count_cs(cs_index)
+      if client[:score] > avaliable_customer_success[customer_success_index][:score]
+        customer_success_index += 1
+        break if customer_success_index >= customer_success_size_array
       end
+      update_count_client(customer_success_index)
     end
-    @avaliable_CS.sort! {|first_customer, second_customer| first_customer[:score] <=> second_customer[:score] }
+    @avaliable_customer_success.sort! do |first_customer_success, second_customer_success|
+      first_customer_success[:score] <=> second_customer_success[:score]
+    end
 
-    check_draw(@avaliable_CS[0], @avaliable_CS[1])
+    return_customer_success_id(@avaliable_customer_success[0], @avaliable_customer_success[1])
   end
 
   def remove_low_level_cs
-    avaliable_CS.reject! { |cs| cs[:score] < ordered_clients[0][:score] }
+    avaliable_customer_success.reject! { |cs| cs[:score] < ordered_clients[0][:score] }
   end
 
-  def update_count_cs(index)
-    create_keys(index) unless avaliable_CS[index][:count_client]
-    avaliable_CS[index][:count_client] += 1
+  def update_count_client(index)
+    create_count_client_keys(index) unless avaliable_customer_success[index][:count_client]
+    avaliable_customer_success[index][:count_client] += 1
   end
 
-  def cs_size_array
-    @cs_size_array ||= avaliable_CS.size
+  def customer_success_size_array
+    @customer_success_size_array ||= avaliable_customer_success.size
   end
 
-  def check_draw(first_cs, second_cs)
-    return first_cs[:id] if second_cs.nil? && first_cs.any?
-    return 0 if first_cs[:count_client].eql?(second_cs[:count_client])
+  def return_customer_success_id(first_customer_success, second_customer_success)
+    return first_customer_success[:id] if second_customer_success.nil? && first_customer_success.any?
+    return 0 if first_customer_success[:count_client].eql?(second_customer_success[:count_client])
 
-    first_cs[:id]
+    first_customer_success[:id]
   end
 
-  def create_keys(index)
-    avaliable_CS[index][:count_client] = 0
+  def create_count_client_keys(index)
+    avaliable_customer_success[index][:count_client] = 0
   end
 
   def ordered_clients
-    @ordered_clients ||= begin
-      @customers.sort! {|first_customer, second_customer| first_customer[:score] <=> second_customer[:score] }
+    @ordered_clients ||= @customers.sort! do |first_customer_success, second_customer_success|
+      first_customer_success[:score] <=> second_customer_success[:score]
     end
   end
 
-  def avaliable_CS
-    @avaliable_CS ||= begin
+  def avaliable_customer_success
+    @avaliable_customer_success ||= begin
       @customer_success.reject! { |cs| @away_customer_success.include?(cs[:id]) }
-      @customer_success.sort! {|first_cs, second_cs| first_cs[:score] <=> second_cs[:score] }
+      @customer_success.sort! do |first_customer_success, second_customer_success|
+        first_customer_success[:score] <=> second_customer_success[:score]
+      end
     end
   end
 end
@@ -89,7 +90,7 @@ class CustomerSuccessBalancingTests < Minitest::Test
   def test_scenario_three
     balancer = CustomerSuccessBalancing.new(
       build_scores(Array(1..999)),
-      build_scores(Array.new(10000, 998)),
+      build_scores(Array.new(10_000, 998)),
       [999]
     )
     result = Timeout.timeout(1.0) { balancer.execute }
@@ -139,6 +140,24 @@ class CustomerSuccessBalancingTests < Minitest::Test
       [2, 4]
     )
     assert_equal 1, balancer.execute
+  end
+
+  def test_scenario_nine
+    balancer = CustomerSuccessBalancing.new(
+      build_scores([60, 40, 80, 75]),
+      build_scores([90]),
+      []
+    )
+    assert_equal 0, balancer.execute
+  end
+
+  def test_scenario_ten
+    balancer = CustomerSuccessBalancing.new(
+      build_scores([60, 40, 99, 75]),
+      build_scores([90]),
+      [3]
+    )
+    assert_equal 0, balancer.execute
   end
 
   private
